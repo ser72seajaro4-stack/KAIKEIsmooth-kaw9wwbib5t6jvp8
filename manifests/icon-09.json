@@ -1,0 +1,31 @@
+{
+  "name": "KAIKEI smooth",
+  "short_name": "KAIKEI smooth",
+  "description": "決済・ポイントアプリをワンタップで呼び出し、ポイントの期限を管理するアプリ",
+  "start_url": "../index.html",
+  "scope": "../",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef3f1",
+  "theme_color": "#0f7d6c",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "../icons/choices/icon-09-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../icons/choices/icon-09-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../icons/choices/icon-09-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
