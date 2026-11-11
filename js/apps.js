@@ -168,6 +168,7 @@ function saveAppEdit(e) {
   }
   if (changed && !save(KEYS.APPS, apps)) return;
   if (!setAppGenres(appGenreKey(target), editGenreDraft)) return;
+  logInfo('F06', 'アプリの設定を保存した', { id: target.id, name: target.name, URLスキーム変更: url !== editInitialUrl ? 'あり' : 'なし' });
   showMessage('保存しました');
   showScreen('apps');
 }
@@ -253,6 +254,7 @@ async function onIconFileChosen(e) {
   try {
     setIconImage(iconTargetId, await makeIconImage(file));
   } catch (err) {
+    logError('F06', 'アイコンの画像を読み込めなかった', err, { id: iconTargetId, type: file.type, size: file.size });
     showMessage('この画像は読み込めませんでした。PNG・JPEGなどの画像を選んでください。');
   }
 }
@@ -264,6 +266,7 @@ function setIconImage(id, data) {
   if (!app) return;
   if (data) app.iconImage = data; else delete app.iconImage;
   if (save(KEYS.APPS, apps)) {
+    logInfo('F06', data ? 'アイコンの画像を変えた' : 'アイコンを元に戻した', { id, name: app.name });
     renderAppsManage();
     showMessage(data ? 'アイコンの画像を変えました' : 'アイコンを元に戻しました');
   }
@@ -276,7 +279,10 @@ function toggleFavorite(id) {
   const app = apps.find(a => a.id === id);
   if (!app) return;
   app.favorite = !app.favorite;
-  if (save(KEYS.APPS, apps)) renderAppsManage();
+  if (save(KEYS.APPS, apps)) {
+    logInfo('F06', app.favorite ? 'お気に入りにした' : 'お気に入りを外した', { id, name: app.name });
+    renderAppsManage();
+  }
 }
 
 /** 削除（確認後、起動履歴と店舗の紐付けも削除） */
@@ -285,7 +291,8 @@ async function removeApp(id) {
   if (!app) return;
   const yes = await confirmDialog(`「${app.name}」を削除しますか？\nこのアプリの起動履歴と、お店への紐付けも削除されます。`, { okLabel: '削除する', danger: true });
   if (!yes) return;
-  deleteApp(id);
+  if (deleteApp(id)) logInfo('F06', 'アプリを削除した（起動履歴・お店の紐付けも削除）', { id, name: app.name });
+  else logError('F06', 'アプリの削除が一部できなかった', null, { id, name: app.name });
   renderAppsManage();
   showMessage('削除しました');
 }
@@ -302,8 +309,9 @@ function findDuplicate(apps, cand) {
 /** 新しいアプリを登録する */
 function addApp(fields) {
   const apps = load(KEYS.APPS);
+  const id = newId();
   apps.push({
-    id: newId(),
+    id,
     name: fields.name,
     url: fields.url || '',
     schemeCandidates: fields.schemeCandidates || (fields.url ? [fields.url] : []),
@@ -314,7 +322,9 @@ function addApp(fields) {
     favorite: false,
     createdAt: new Date().toISOString(),
   });
-  return save(KEYS.APPS, apps);
+  const ok = save(KEYS.APPS, apps);
+  if (ok) logInfo('F02', 'アプリを登録した', { id, name: fields.name, 種類: fields.presetId ? '一覧から' : '手入力' });
+  return ok;
 }
 
 let presetCat = 'all'; // S03で選んでいるカテゴリ
@@ -455,6 +465,7 @@ function addPicked() {
     icon: p.icon, favorite: false, createdAt: new Date(now + i).toISOString(),
   }));
   if (save(KEYS.APPS, apps)) {
+    logInfo('F02', 'アプリをまとめて登録した', { 件数: targets.length });
     showMessage(`${targets.length}件のアプリを追加しました`);
     showScreen('apps');
   }
@@ -486,6 +497,8 @@ async function resetAllData() {
     (genreSettingsEmpty(genreSet) || saveGenreSettings({ custom: [], defaults: {} }));
   renderAppsManage();
   renderSyncScreen();
+  if (ok) logInfo('X04', 'データをリセットした', Object.fromEntries(counts));
+  else logError('X04', 'データのリセットが一部できなかった');
   showMessage(ok ? 'データをリセットしました' : '一部のデータを消せませんでした。もう一度試してください。');
 }
 
@@ -596,7 +609,9 @@ function readManualForm(forTest) {
 /** 試しに起動（登録・履歴の記録はしない） */
 function testManual() {
   const cand = readManualForm(true);
-  if (cand) openApp(cand);
+  if (!cand) return;
+  logInfo('F02', '登録前に試しに起動した', { name: document.getElementById('app-name').value.trim() || '(未入力)' });
+  openApp(cand);
 }
 
 /** 手入力での追加 */

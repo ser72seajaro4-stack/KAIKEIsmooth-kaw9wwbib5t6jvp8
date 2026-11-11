@@ -296,7 +296,7 @@
       </form>
     </section>
 
-    <!-- S09 設定（ホーム画面のアイコン・データの移行） -->
+    <!-- S09 設定（ホーム画面のアイコン・データの移行・ログ） -->
     <section id="screen-sync" class="screen" hidden>
       <div class="card">
         <h2 class="card-title">ホーム画面のアイコン</h2>
@@ -345,6 +345,20 @@
       </div>
 
       <div class="card">
+        <h2 class="card-title">ログ（運用担当者向け）</h2>
+        <p class="card-text">不具合の原因調査や利用状況の分析のため、操作と主な処理の結果をこの端末に記録しています（サーバーには送りません）。</p>
+        <p class="field-hint" id="log-summary"></p>
+        <div class="btn-row">
+          <button type="button" id="btn-log-export" class="btn btn-primary">ログを保存</button>
+          <button type="button" id="btn-log-clear" class="btn btn-ghost">ログを消す</button>
+        </div>
+        <details class="advanced">
+          <summary>最近のログ（新しい順に30件）</summary>
+          <pre id="log-recent" class="log-recent"></pre>
+        </details>
+      </div>
+
+      <div class="card">
         <h2 class="card-title">アプリの起動・データ</h2>
         <div class="refresh-box">
           <button type="button" id="btn-refresh-launch" class="btn btn-ghost">↻ 起動方法を更新</button>
@@ -389,6 +403,7 @@
   </div>
 </div>
 
+<script src="js/log.js"></script>
 <script src="js/util.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/presets.js"></script>

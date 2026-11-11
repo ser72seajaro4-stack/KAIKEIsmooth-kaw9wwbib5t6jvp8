@@ -101,7 +101,10 @@ function setAppGenres(key, wanted) {
       c.members = want ? [...arr(c.members), key] : arr(c.members).filter(k => k !== key);
     }
   });
-  return changed ? saveGenreSettings(s) : true;
+  if (!changed) return true;
+  const ok = saveGenreSettings(s);
+  if (ok) logInfo('X01', 'アプリの入るジャンルを変えた', { app: key, ジャンル: [...wanted].join(',') });
+  return ok;
 }
 
 /** タグに出すジャンル：隠していないもので、keys のアプリが1つ以上入っているもの */
@@ -169,7 +172,10 @@ function renderGenres() {
 async function resetAllGenres() {
   const yes = await confirmDialog('自分で作ったジャンルを削除し、標準のジャンルを最初の状態に戻しますか？\n登録したアプリは消えません。', { okLabel: '元に戻す', danger: true });
   if (!yes) return;
-  if (saveGenreSettings({ custom: [], defaults: {} })) showMessage('ジャンルを最初の状態に戻しました');
+  if (saveGenreSettings({ custom: [], defaults: {} })) {
+    logInfo('X01', 'ジャンルをすべて最初の状態に戻した');
+    showMessage('ジャンルを最初の状態に戻しました');
+  }
   renderGenres();
 }
 
@@ -266,6 +272,7 @@ function saveGenre(e) {
     s.custom.push({ id: 'g' + newId(), name, members });
   }
   if (saveGenreSettings(s)) {
+    logInfo('X01', g ? 'ジャンルを更新した' : 'ジャンルを作った', { id: g ? g.id : s.custom[s.custom.length - 1].id, name, アプリ: members.length });
     showMessage(g ? '保存しました' : `ジャンル「${name}」を作りました`);
     showScreen('genres');
   }
@@ -278,7 +285,10 @@ async function removeGenre() {
   if (!yes) return;
   const s = loadGenreSettings();
   s.custom = s.custom.filter(x => x.id !== g.id);
-  if (saveGenreSettings(s)) showMessage('削除しました');
+  if (saveGenreSettings(s)) {
+    logInfo('X01', 'ジャンルを削除した', { id: g.id, name: g.name });
+    showMessage('削除しました');
+  }
   showScreen('genres');
 }
 
@@ -289,7 +299,10 @@ async function restoreGenre() {
   if (!yes) return;
   const s = loadGenreSettings();
   delete s.defaults[g.id];
-  if (saveGenreSettings(s)) showMessage('最初の状態に戻しました');
+  if (saveGenreSettings(s)) {
+    logInfo('X01', 'ジャンルを最初の状態に戻した', { id: g.id, name: g.defaultName });
+    showMessage('最初の状態に戻しました');
+  }
   openGenreEdit(g.id);
 }
 

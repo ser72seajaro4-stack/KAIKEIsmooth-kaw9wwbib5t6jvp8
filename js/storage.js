@@ -23,6 +23,7 @@ function load(key) {
     const value = JSON.parse(text);
     return Array.isArray(value) ? value : [];
   } catch (e) {
+    logError('SYS', 'データを読み込めなかった', e, { key });
     return [];
   }
 }
@@ -33,6 +34,7 @@ function loadObject(key) {
     const value = JSON.parse(localStorage.getItem(key) || '{}');
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   } catch (e) {
+    logError('SYS', 'データを読み込めなかった', e, { key });
     return {};
   }
 }
@@ -71,6 +73,7 @@ function writeRaw(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch (e) {
+    logError('SYS', 'データを保存できなかった', e, { key });
     showMessage('データを保存できませんでした。ブラウザの設定を確認してください。');
     return false;
   }
@@ -96,13 +99,15 @@ function saveFlag(key, value) {
   try {
     localStorage.setItem(key, String(!!value));
   } catch (e) {
-    /* 保存できなくても動作は続ける */
+    logError('SYS', 'データを保存できなかった', e, { key }); // 保存できなくても動作は続ける
   }
 }
 
 /** アプリ本体、その起動履歴、店舗の紐付けをまとめて削除する */
 function deleteApp(appId) {
-  save(KEYS.APPS, load(KEYS.APPS).filter(a => a.id !== appId));
-  save(KEYS.HISTORY, load(KEYS.HISTORY).filter(h => h.appId !== appId));
-  save(KEYS.SHOPS, load(KEYS.SHOPS).map(s => ({ ...s, appIds: (s.appIds || []).filter(id => id !== appId) })));
+  return [
+    save(KEYS.APPS, load(KEYS.APPS).filter(a => a.id !== appId)),
+    save(KEYS.HISTORY, load(KEYS.HISTORY).filter(h => h.appId !== appId)),
+    save(KEYS.SHOPS, load(KEYS.SHOPS).map(s => ({ ...s, appIds: (s.appIds || []).filter(id => id !== appId) }))),
+  ].every(Boolean);
 }

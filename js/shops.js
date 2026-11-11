@@ -34,6 +34,8 @@ function renderShops() {
 function openShopApps(id) {
   currentShopId = id;
   showScreen('shop-apps');
+  const shop = load(KEYS.SHOPS).find(s => s.id === id);
+  if (shop) logInfo('F11', 'お店のアプリを表示した', { id, name: shop.name, アプリ: (shop.appIds || []).length });
 }
 
 /** S07 店舗別アプリ表示（紐付けたアプリだけ。並びはホームと同じ規則） */
@@ -90,6 +92,7 @@ function saveShop(e) {
   const idx = shops.findIndex(s => s.id === item.id);
   if (idx >= 0) shops[idx] = item; else shops.push(item);
   if (save(KEYS.SHOPS, shops)) {
+    logInfo('F11', idx >= 0 ? 'お店を更新した' : 'お店を追加した', { id: item.id, name: item.name, アプリ: appIds.length });
     showMessage(idx >= 0 ? '保存しました' : 'お店を追加しました');
     showScreen('shops');
   }
@@ -100,7 +103,8 @@ async function removeShop() {
   if (!shop) return;
   const yes = await confirmDialog(`「${shop.name}」を削除しますか？\n登録したアプリは削除されません。`, { okLabel: '削除する', danger: true });
   if (!yes) return;
-  save(KEYS.SHOPS, load(KEYS.SHOPS).filter(s => s.id !== shop.id));
+  if (!save(KEYS.SHOPS, load(KEYS.SHOPS).filter(s => s.id !== shop.id))) return;
+  logInfo('F11', 'お店を削除した', { id: shop.id, name: shop.name });
   showMessage('削除しました');
   showScreen('shops');
 }

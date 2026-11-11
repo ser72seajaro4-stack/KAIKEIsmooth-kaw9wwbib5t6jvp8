@@ -31,11 +31,19 @@ function sortPoints(points) {
 
 /** ホーム用のお知らせ一覧（残り日数がお知らせ日数以下で、まだ失効していないもの） */
 function getAlerts() {
-  return load(KEYS.POINTS)
-    .map(p => ({ point: p, ...pointStatus(p) }))
-    .filter(a => a.level === 'warning' || a.level === 'danger')
-    .sort((a, b) => a.days - b.days)
-    .map(a => ({ id: a.point.id, name: a.point.name, amount: a.point.amount, days: a.days, level: a.level }));
+  try {
+    const points = load(KEYS.POINTS);
+    const alerts = points
+      .map(p => ({ point: p, ...pointStatus(p) }))
+      .filter(a => a.level === 'warning' || a.level === 'danger')
+      .sort((a, b) => a.days - b.days)
+      .map(a => ({ id: a.point.id, name: a.point.name, amount: a.point.amount, days: a.days, level: a.level }));
+    logInfo('F08', '有効期限が近いポイントを判定した', { ポイント: points.length, お知らせ: alerts.length });
+    return alerts;
+  } catch (e) {
+    logError('F08', '有効期限の判定でエラーが起きた', e);
+    return [];
+  }
 }
 
 function daysText(st) {
@@ -132,6 +140,7 @@ function savePoint(e) {
   const idx = points.findIndex(p => p.id === item.id);
   if (idx >= 0) points[idx] = item; else points.push(item);
   if (save(KEYS.POINTS, points)) {
+    logInfo('F07', idx >= 0 ? 'ポイントを更新した' : 'ポイントを追加した', { id: item.id, name: item.name });
     showMessage(idx >= 0 ? '保存しました' : 'ポイントを追加しました');
     showScreen('points');
   }
@@ -142,7 +151,8 @@ async function removePoint() {
   if (!p) return;
   const yes = await confirmDialog(`「${p.name}」を削除しますか？`, { okLabel: '削除する', danger: true });
   if (!yes) return;
-  save(KEYS.POINTS, load(KEYS.POINTS).filter(x => x.id !== p.id));
+  if (!save(KEYS.POINTS, load(KEYS.POINTS).filter(x => x.id !== p.id))) return;
+  logInfo('F07', 'ポイントを削除した', { id: p.id, name: p.name });
   showMessage('削除しました');
   showScreen('points');
 }

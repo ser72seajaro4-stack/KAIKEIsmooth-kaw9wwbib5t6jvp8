@@ -9,7 +9,9 @@ function purgeHistory() {
   const limit = Date.now() - HISTORY_DAYS * 86400000;
   const history = load(KEYS.HISTORY);
   const kept = history.filter(h => Date.parse(h.launchedAt) >= limit);
-  if (kept.length !== history.length) save(KEYS.HISTORY, kept);
+  if (kept.length !== history.length && save(KEYS.HISTORY, kept)) {
+    logInfo('F04', '30日より古い起動履歴を削除した', { 削除: history.length - kept.length, 残り: kept.length });
+  }
 }
 
 /**
@@ -40,16 +42,19 @@ function sortApps(apps, history) {
 function recordLaunch(appId) {
   const history = load(KEYS.HISTORY);
   history.push({ id: newId(), appId, launchedAt: new Date().toISOString() });
-  save(KEYS.HISTORY, history);
+  if (save(KEYS.HISTORY, history)) logInfo('F04', '起動履歴を記録した', { appId });
+  else logError('F04', '起動履歴を記録できなかった', null, { appId });
 }
 
 /** アプリを起動する（F03）：履歴を記録してから起動する */
 function launchApp(appId) {
   const app = load(KEYS.APPS).find(a => a.id === appId);
   if (!app) {
+    logError('F03', '起動しようとしたアプリが見つからない', null, { appId });
     showMessage('このアプリは削除されています。');
     return;
   }
+  logInfo('F03', 'アプリの起動を始めた', { appId: app.id, name: app.name });
   recordLaunch(app.id);
   openApp(app);
 }
@@ -185,6 +190,7 @@ function migrateSchemes() {
     changed = true;
   });
   if (changed && !save(KEYS.APPS, apps)) return; // 保存できなければ次回もう一度
+  if (changed) logInfo('F03', '登録済みアプリの起動方法を最新のテスト結果に合わせた', { 版: SCHEME_DATA_VERSION });
   try { localStorage.setItem(SCHEME_VERSION_KEY, SCHEME_DATA_VERSION); } catch (e) { /* 次回もう一度 */ }
 }
 
@@ -220,8 +226,12 @@ function openApp(app) {
   }
   // 直接開く方法が全部外れていた（アプリが入っていなかった）時は、戻ってきた時に「更新して開く」ボタンを出す
   if (cands.length && (app.iosAppId || app.androidPackage)) offerRetryOnReturn(app);
-  if (openStore(app)) return;
+  if (openStore(app)) {
+    logInfo('F03', 'ストアのアプリのページを開いた', { appId: app.id, name: app.name, platform: detectPlatform() });
+    return;
+  }
   const platform = detectPlatform();
+  logError('F03', 'この端末の起動方法がない（ストアの情報もない）', null, { appId: app.id, name: app.name, platform });
   if (platform === 'ios') showMessage('このアプリはiPhone版の情報（App Storeのリンク）が登録されていません。iPhoneでは使えないアプリの可能性があります。');
   else if (platform === 'android') showMessage('このアプリはAndroid版の情報（Google Playのリンク）が登録されていません。Androidでは使えないアプリの可能性があります。');
   else showMessage('この端末では起動できません。スマートフォンで使ってください。');
@@ -297,6 +307,7 @@ function attemptLaunch(app, target, ctx) {
     if (left || isWeb) {
       // 開けた（公式アプリリンクは、未インストールならリンク側でストアに案内される）
       if (ctx.index !== -1) saveLaunchState(app.id, { index: ctx.index, confirmed: target });
+      logInfo('F03', 'アプリを開いた', { appId: app.id, name: app.name, 方法: isWeb ? 'リンク' : 'URLスキーム', 候補: ctx.index });
       return;
     }
     if (ctx.index === -1) {
@@ -315,7 +326,9 @@ function attemptLaunch(app, target, ctx) {
   try {
     if (isWeb) openExternal(url);
     else navigateTo(url);
-  } catch (e) { /* 失敗は watchLeave で扱う */ }
+  } catch (e) {
+    logError('F03', 'アプリを開く処理でエラーが起きた', e, { appId: app.id, name: app.name }); // 結果は watchLeave で扱う
+  }
 }
 
 function storeLabel(platform) {
@@ -325,6 +338,7 @@ function storeLabel(platform) {
 /** 直接開けなかった時：ストアを開く（ブラウザに止められた時のため、ボタンも出しておく） */
 function launchFailed(app) {
   const platform = detectPlatform();
+  logError('F03', 'アプリを直接開けなかった（ストアを開く）', null, { appId: app.id, name: app.name, platform });
   showMessage(`${app.name}を直接開けませんでした。`, [
     { label: storeLabel(platform), onClick: () => openStore(app) },
   ]);
@@ -365,7 +379,7 @@ function resetFailedLaunches() {
     const st = a.launch && a.launch[detectPlatform()];
     if (st && !st.confirmed && st.index > 0) { a.launch[detectPlatform()] = { index: 0, confirmed: '' }; n++; }
   });
-  if (n) save(KEYS.APPS, apps);
+  if (n && save(KEYS.APPS, apps)) logInfo('F03', '起動方法を更新した（開けなかった記録を消した）', { 件数: n });
   return n;
 }
 
@@ -474,18 +488,26 @@ function renderAppGroups(apps) {
 
 /** S01 ホーム画面 */
 function renderHome() {
-  renderHomeGrid();
-  renderAlerts();
+  try {
+    renderHomeGrid();
+    renderAlerts();
+    const n = load(KEYS.APPS).length;
+    logInfo('F05', '登録したアプリを並び替えた', { 件数: n });
+    logInfo('F01', 'ホームを表示した', { アプリ: n });
+  } catch (e) {
+    logError('F01', 'ホームを表示できなかった', e);
+  }
 }
 
 /** 初回起動時の注意表示（F10） */
 async function showFirstNotice() {
   if (loadFlag(KEYS.NOTICE)) return;
   await confirmDialog(
-    'データはこの端末のブラウザ内に保存されます。\n機種変更・ブラウザの変更・閲覧データの削除をするとデータは消えます。\n\n右上の「⚙ 設定」から、バックアップファイルの保存や、複数の端末での同期ができます。\niPhoneでは、共有メニューの「ホーム画面に追加」から使うと、データが消えにくくなります。',
+    'データはこの端末のブラウザ内に保存されます。\n機種変更・ブラウザの変更・閲覧データの削除をするとデータは消えます。\n\n右上の「⚙ 設定」から、バックアップファイルの保存ができます。\niPhoneでは、共有メニューの「ホーム画面に追加」から使うと、データが消えにくくなります。',
     { okLabel: 'わかりました', alertOnly: true }
   );
   saveFlag(KEYS.NOTICE, true);
+  logInfo('F10', '初回の注意を表示した');
 }
 
 /** プリセットのアプリをすべて登録する（この端末で使えるものだけ・登録済みは飛ばす） */
@@ -503,7 +525,10 @@ async function addAllPresets() {
     iosAppId: p.iosAppId, androidPackage: p.androidPackage, presetId: p.pid,
     icon: p.icon, favorite: false, createdAt: new Date(now + i).toISOString(), // 一覧の並びをプリセット順にする
   }));
-  if (save(KEYS.APPS, apps)) showMessage(`${targets.length}件のアプリを登録しました`);
+  if (save(KEYS.APPS, apps)) {
+    logInfo('F02', '対応アプリをすべて登録した', { 件数: targets.length });
+    showMessage(`${targets.length}件のアプリを登録しました`);
+  }
   renderHome();
 }
 
@@ -528,10 +553,14 @@ function loadSampleData() {
     { id: newId() + 'c', name: 'Pontaポイント（サンプル）', amount: 3020, expiry: plus(45), notifyDays: null, memo: '' },
     { id: newId() + 'd', name: 'Vポイント（サンプル）', amount: 120, expiry: plus(-3), notifyDays: null, memo: '' },
   ];
-  save(KEYS.APPS, apps);
-  save(KEYS.HISTORY, history);
-  save(KEYS.POINTS, points);
-  save(KEYS.SHOPS, [{ id: newId() + 's', name: 'セブン-イレブン（サンプル）', appIds: [apps[0].id, apps[3].id] }]);
+  const ok = [
+    save(KEYS.APPS, apps),
+    save(KEYS.HISTORY, history),
+    save(KEYS.POINTS, points),
+    save(KEYS.SHOPS, [{ id: newId() + 's', name: 'セブン-イレブン（サンプル）', appIds: [apps[0].id, apps[3].id] }]),
+  ].every(Boolean);
+  if (ok) logInfo('F02', 'サンプルデータを登録した', { アプリ: apps.length, ポイント: points.length, お店: 1 });
+  else logError('F02', 'サンプルデータを登録できなかった');
   showMessage('サンプルデータを入れました');
   renderHome();
 }
