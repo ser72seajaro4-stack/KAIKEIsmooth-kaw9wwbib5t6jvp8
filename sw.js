@@ -2,7 +2,7 @@
 // ファイルを更新した時は CACHE_NAME の版数を上げる（v1 → v2）。
 'use strict';
 
-const CACHE_NAME = 'kaikei-smooth-v27';
+const CACHE_NAME = 'kaikei-smooth-v28';
 const ASSETS = [
   './',
   './index.html',
@@ -19,7 +19,6 @@ const ASSETS = [
   './js/sync.js',
   './js/icon-choices.js',
   './js/icon.js',
-  './js/vendor/qrcode.js',
   './js/app.js',
   './scheme-test.html',
   './js/scheme-test.js',
@@ -43,7 +42,6 @@ self.addEventListener('activate', event => {
 // キャッシュにあればそれを返し、なければ通信で取得する
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  if (new URL(event.request.url).pathname.includes('/api/')) return; // 同期APIはキャッシュしない
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then(hit => hit || fetch(event.request))
   );

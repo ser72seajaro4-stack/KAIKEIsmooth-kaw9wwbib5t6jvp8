@@ -32,9 +32,7 @@ function loadGenreSettings() {
 }
 
 function saveGenreSettings(s) {
-  const ok = writeRaw(KEYS.GENRES, { custom: s.custom, defaults: s.defaults, updatedAt: new Date().toISOString() });
-  if (ok && typeof scheduleSync === 'function') scheduleSync();
-  return ok;
+  return writeRaw(KEYS.GENRES, { custom: s.custom, defaults: s.defaults, updatedAt: new Date().toISOString() });
 }
 
 /** 標準のまま（何も変えていない）か */

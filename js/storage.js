@@ -1,6 +1,5 @@
 // storage.js データの読み書き（詳細設計書 7.1・7.2・7.5）
 // データは端末のブラウザ内（localStorage）に保存する。
-// 同期（js/sync.js）を始めた場合だけ、同期先のサーバーにも保存される。
 'use strict';
 
 const KEYS = {
@@ -9,7 +8,7 @@ const KEYS = {
   POINTS: 'points',
   SHOPS: 'shops',
   NOTICE: 'noticeShown',
-  TOMBSTONES: 'syncTombstones', // 削除した記録（同期で別の端末から復活しないようにする）
+  TOMBSTONES: 'syncTombstones', // 削除した記録（バックアップの読み込みで復活しないようにする）
   GENRES: 'genreSettings',      // ジャンルの作成・変更（js/genres.js）
 };
 
@@ -66,7 +65,7 @@ function stampChanges(key, list) {
   }
 }
 
-/** そのまま書き込む（同期・読み込みで、合わせた結果を書き戻す時に使う） */
+/** そのまま書き込む（バックアップの読み込みで、合わせた結果を書き戻す時に使う） */
 function writeRaw(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -80,10 +79,7 @@ function writeRaw(key, value) {
 /** 配列をJSON文字列にして保存する。失敗時はメッセージを出してfalse */
 function save(key, list) {
   if (STAMPED_KEYS.includes(key)) stampChanges(key, list);
-  const ok = writeRaw(key, list);
-  // 同期を使っている時は、少し待ってからまとめて同期する
-  if (ok && typeof scheduleSync === 'function' && key !== KEYS.NOTICE) scheduleSync();
-  return ok;
+  return writeRaw(key, list);
 }
 
 /** true/false の記録を読む（noticeShown用） */
