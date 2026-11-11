@@ -14,7 +14,7 @@ const SCREENS = {
   'app-edit':   { section: 'screen-app-edit',   title: 'アプリを編集',     render: () => renderAppEdit(),     back: 'apps',   tab: 'apps' },
   'genres':     { section: 'screen-genres',     title: 'ジャンルの編集',   render: () => renderGenres(),      back: () => genreReturn, tab: () => SCREENS[genreReturn].tab },
   'genre-edit': { section: 'screen-genre-edit', title: 'ジャンル',         render: () => renderGenreEdit(),   back: 'genres', tab: () => SCREENS[genreReturn].tab },
-  'sync':       { section: 'screen-sync',       title: '設定',             render: () => { renderIconSetting(); renderSyncScreen(); }, back: 'home', tab: '' },
+  'sync':       { section: 'screen-sync',       title: '設定',             render: () => { renderIconSetting(); renderSyncScreen(); renderLogSetting(); }, back: 'home', tab: '' },
 };
 
 let currentScreen = 'home';
@@ -35,11 +35,17 @@ function showScreen(id) {
     if (t.dataset.tab === screenValue(conf.tab)) t.setAttribute('aria-current', 'page');
     else t.removeAttribute('aria-current');
   });
-  conf.render();
+  try {
+    conf.render();
+    logInfo('SYS', '画面を表示した', { 画面: id });
+  } catch (e) {
+    logError('SYS', '画面を表示できなかった', e, { 画面: id });
+  }
   window.scrollTo(0, 0);
 }
 
 function init() {
+  logInfo('SYS', 'アプリを開いた', { platform: detectPlatform(), ホーム画面から: isStandalone() ? 'はい' : 'いいえ', オンライン: navigator.onLine ? 'はい' : 'いいえ' });
   purgeHistory();
   migrateSchemes(); // 登録済みアプリのURLスキームをテスト結果に合わせる
 
@@ -67,7 +73,7 @@ function init() {
   initTip('btn-refresh-tip', 'refresh-tip');
   document.getElementById('icon-file').addEventListener('change', onIconFileChosen);
   document.getElementById('btn-refresh-launch').addEventListener('click', () => {
-    const n = resetFailedLaunches();
+    const n = resetFailedLaunches(); // ログは resetFailedLaunches() の中で出す
     showMessage(n ? `${n}件のアプリの起動方法を更新しました。次のタップで直接開くのを試します。` : '更新が必要なアプリはありませんでした。');
   });
 
@@ -87,6 +93,7 @@ function init() {
   document.getElementById('btn-settings').addEventListener('click', () => showScreen('sync'));
   document.getElementById('btn-note-sync').addEventListener('click', () => showScreen('sync'));
   initSyncScreen();
+  initLogSetting();  // ログ（設定画面）
   initIconSetting(); // ホーム画面のアイコン（設定画面）
   initGenres();      // ジャンルの作成・変更
   initAppEdit();     // アプリの編集（名前・ジャンル・URLスキーム）
@@ -112,9 +119,11 @@ function initTip(btnId, tipId) {
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* 登録できない環境では通常どおり動く */ });
+    navigator.serviceWorker.register('sw.js')
+      .then(() => logInfo('F09', 'オフライン動作の準備をした（Service Workerを登録した）'))
+      .catch(e => logError('F09', 'Service Workerを登録できなかった（オフラインでは動かない）', e)); // 登録できなくても通常どおり動く
   } catch (e) {
-    /* 同上 */
+    logError('F09', 'Service Workerを登録できなかった（オフラインでは動かない）', e);
   }
 }
 

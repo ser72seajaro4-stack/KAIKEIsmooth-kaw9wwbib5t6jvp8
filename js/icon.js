@@ -80,10 +80,12 @@ function chooseHomeIcon(id) {
     if (id === DEFAULT_ICON_ID) localStorage.removeItem(HOME_ICON_KEY);
     else localStorage.setItem(HOME_ICON_KEY, id);
   } catch (e) {
+    logError('X03', 'ホーム画面のアイコンの設定を保存できなかった', e, { icon: id });
     showMessage('アイコンの設定を保存できませんでした。');
     return;
   }
   applyHomeIcon(id);
+  logInfo('X03', 'ホーム画面のアイコンを変えた', { icon: id, name: iconName(id) });
   renderIconSetting();
   showMessage(isStandalone()
     ? `アイコンを「${iconName(id)}」にしました。ホーム画面のアイコンは、ブラウザから追加し直すと変わります。`

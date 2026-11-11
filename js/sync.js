@@ -113,6 +113,11 @@ function validateImport(obj) {
 
 /* ===================== バックアップ（ファイルで移す） ===================== */
 
+/** ログ用の件数 */
+function backupCounts(d) {
+  return { アプリ: (d.apps || []).length, ポイント: (d.points || []).length, お店: (d.shops || []).length };
+}
+
 function backupObject() {
   return { app: 'kaikei-smooth', format: EXPORT_FORMAT, exportedAt: new Date().toISOString(), data: collectData() };
 }
@@ -132,6 +137,7 @@ function exportToFile() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
+  logInfo('X02', 'バックアップをファイルに保存した', backupCounts(collectData()));
   showMessage('バックアップファイルを保存しました');
 }
 
@@ -140,14 +146,18 @@ function exportToClipboard() {
   const text = JSON.stringify(backupObject());
   const box = document.getElementById('backup-text');
   box.value = text;
-  const fallback = () => {
+  const fallback = err => {
+    if (err) logError('X02', 'バックアップをクリップボードにコピーできなかった（手でコピーしてもらう）', err);
     box.hidden = false;
     box.focus();
     box.select();
     showMessage('下の欄を全選択してコピーしてください。');
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => showMessage('コピーしました。新しい端末の「テキストから読み込む」に貼り付けてください。'), fallback);
+    navigator.clipboard.writeText(text).then(() => {
+      logInfo('X02', 'バックアップをテキストでコピーした', backupCounts(collectData()));
+      showMessage('コピーしました。新しい端末の「テキストから読み込む」に貼り付けてください。');
+    }, fallback);
   } else fallback();
 }
 
@@ -155,11 +165,16 @@ function exportToClipboard() {
 async function importBackup(text, mode) {
   let obj;
   try { obj = JSON.parse(text); } catch (e) {
+    logError('X02', 'バックアップを読み込めなかった（形式が違う）', e, { 文字数: text.length });
     showMessage('読み込めませんでした。バックアップのファイル（.json）か、コピーしたテキストを使ってください。');
     return;
   }
   const err = validateImport(obj);
-  if (err) { showMessage(err); return; }
+  if (err) {
+    logError('X02', 'バックアップを読み込めなかった（中身が違う）', null, { 理由: err });
+    showMessage(err);
+    return;
+  }
   const incoming = obj.data && typeof obj.data === 'object' ? obj.data : obj;
   const n = (incoming.apps || []).length, m = (incoming.points || []).length;
   const msg = mode === 'replace'
@@ -181,6 +196,7 @@ async function importBackup(text, mode) {
     }));
   }
   applyData(data);
+  logInfo('X02', mode === 'replace' ? 'バックアップを読み込んで置き換えた' : 'バックアップを読み込んで合わせた', backupCounts(data));
   showMessage('読み込みました');
   renderSyncScreen();
 }

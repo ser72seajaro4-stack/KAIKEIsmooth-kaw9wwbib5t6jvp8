@@ -2,12 +2,13 @@
 // ファイルを更新した時は CACHE_NAME の版数を上げる（v1 → v2）。
 'use strict';
 
-const CACHE_NAME = 'kaikei-smooth-v28';
+const CACHE_NAME = 'kaikei-smooth-v29';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './css/style.css',
+  './js/log.js',
   './js/util.js',
   './js/storage.js',
   './js/presets.js',
