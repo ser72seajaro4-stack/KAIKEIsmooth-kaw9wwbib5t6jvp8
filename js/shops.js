@@ -4,14 +4,21 @@
 
 let currentShopId = null; // S07で表示中、またはS08で編集中のお店（新規はnull）
 
-/** S06 店舗ショートカット一覧 */
+/** S06 店舗ショートカット一覧（お店の名前・紐付けたアプリの名前で検索できる） */
 function renderShops() {
   const list = document.getElementById('shops-list');
-  const shops = load(KEYS.SHOPS);
+  const allShops = load(KEYS.SHOPS);
   const apps = load(KEYS.APPS);
-  document.getElementById('shops-empty').hidden = shops.length > 0;
+  const appsOf = s => (s.appIds || []).map(id => apps.find(a => a.id === id)).filter(Boolean);
+  const q = normalizeForSearch(document.getElementById('shops-query').value || '');
+  const shops = q
+    ? allShops.filter(s => [s.name, ...appsOf(s).flatMap(appSearchWords)].some(w => normalizeForSearch(w || '').includes(q)))
+    : allShops;
+  document.getElementById('shops-empty').hidden = allShops.length > 0;
+  document.getElementById('shops-filter').hidden = allShops.length === 0;
+  document.getElementById('shops-no-hit').hidden = !(allShops.length && !shops.length);
   list.innerHTML = shops.map(s => {
-    const names = (s.appIds || []).map(id => apps.find(a => a.id === id)).filter(Boolean).map(a => a.name);
+    const names = appsOf(s).map(a => a.name);
     return `<li class="list-item">
       <button type="button" class="shop-open" data-open="${esc(s.id)}">
         <div class="list-name">${esc(s.name)}</div>

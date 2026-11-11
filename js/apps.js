@@ -473,17 +473,15 @@ async function resetAllData() {
   const genreSet = loadGenreSettings();
   if (!genreSettingsEmpty(genreSet)) counts.push(['ジャンルの変更（自分で作ったジャンルなど）', genreSet.custom.length + Object.keys(genreSet.defaults).length]);
   if (counts.every(([, n]) => n === 0)) { showMessage('消すデータはありません'); return; }
-  const syncing = typeof syncSettings === 'function' && !!syncSettings().code;
   const first = await confirmDialog(
     'データをリセットしますか？\n次のデータがすべて消えます。\n\n' +
     counts.map(([name, n]) => `・${name}：${n}件`).join('\n') +
-    '\n\n残しておきたい場合は、先にこの画面の「ファイルに保存」で保存してください。' +
-    (syncing ? '\n\n同期している端末のデータも消えます。' : ''),
+    '\n\n残しておきたい場合は、先にこの画面の「ファイルに保存」で保存してください。',
     { okLabel: '次へ', danger: true });
   if (!first) return;
   const second = await confirmDialog('本当にリセットしてよろしいですか？\nこの操作は元に戻せません。', { okLabel: 'リセットする', danger: true });
   if (!second) return;
-  // save() を通して消す（削除の記録が残り、同期していても別の端末から復活しない）
+  // save() を通して消す（削除の記録が残り、古いバックアップを合わせて読み込んでも復活しない）
   const ok = [KEYS.APPS, KEYS.POINTS, KEYS.SHOPS, KEYS.HISTORY].map(k => save(k, [])).every(Boolean) &&
     (genreSettingsEmpty(genreSet) || saveGenreSettings({ custom: [], defaults: {} }));
   renderAppsManage();

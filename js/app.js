@@ -58,6 +58,7 @@ function init() {
   document.getElementById('app-store').addEventListener('input', updateStoreDetected);
   document.getElementById('preset-query').addEventListener('input', renderPresetList);
   document.getElementById('home-query').addEventListener('input', renderHomeGrid);
+  document.getElementById('shops-query').addEventListener('input', renderShops);
   document.getElementById('btn-multi').addEventListener('click', () => setMultiMode(!multiMode));
   document.getElementById('btn-multi-cancel').addEventListener('click', () => setMultiMode(false));
   document.getElementById('btn-multi-all').addEventListener('click', pickAllShown);
@@ -93,9 +94,7 @@ function init() {
   showScreen('home');
   showFirstNotice();
   registerServiceWorker();
-  handleSyncHash();      // QRコード（#sync=〇〇）から開かれた時
   handleLaunchFailHash(); // Androidで起動に失敗して戻ってきた時（#kf=〇〇）
-  scheduleSync(300);     // 同期中なら起動時に同期する
 }
 
 /** ツールチップ：ボタンをタップで開閉。外側をタップ・Escキー・画面の切り替えで閉じる */
@@ -120,5 +119,4 @@ function registerServiceWorker() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-window.addEventListener('hashchange', handleSyncHash);
 window.addEventListener('hashchange', handleLaunchFailHash);

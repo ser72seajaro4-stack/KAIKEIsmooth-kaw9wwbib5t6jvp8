@@ -59,7 +59,7 @@
         <p id="home-no-hit" class="empty-text" hidden>見つかりませんでした。</p>
         <div id="app-groups" class="app-groups" hidden></div>
         <div id="app-grid" class="app-grid"></div>
-        <p class="data-note">データはこの端末のブラウザ内に保存されます。機種変更・ブラウザの変更・閲覧データの削除をするとデータは消えるため、<button type="button" class="link-btn" id="btn-note-sync">バックアップ・同期</button>をおすすめします。</p>
+        <p class="data-note">データはこの端末のブラウザ内に保存されます。機種変更・ブラウザの変更・閲覧データの削除をするとデータは消えるため、<button type="button" class="link-btn" id="btn-note-sync">バックアップ</button>をおすすめします。</p>
       </div>
     </section>
 
@@ -184,8 +184,13 @@
     <!-- S06 店舗ショートカット一覧画面 -->
     <section id="screen-shops" class="screen" hidden>
       <p class="lead">お店ごとに使うアプリをまとめておくと、レジ前でそのアプリだけを表示できます。</p>
+      <div id="shops-filter" class="preset-search" hidden>
+        <label for="shops-query" class="visually-hidden">お店を探す</label>
+        <input type="search" id="shops-query" autocomplete="off" placeholder="お店の名前・アプリ名で探す">
+      </div>
       <ul id="shops-list" class="shop-list"></ul>
       <p id="shops-empty" class="empty-text" hidden>登録したお店はまだありません。</p>
+      <p id="shops-no-hit" class="empty-text" hidden>見つかりませんでした。</p>
       <div class="bottom-actions">
         <button type="button" id="btn-add-shop" class="btn btn-primary btn-block">＋ お店を追加</button>
       </div>
@@ -291,7 +296,7 @@
       </form>
     </section>
 
-    <!-- S09 設定（ホーム画面のアイコン・データの移行・同期） -->
+    <!-- S09 設定（ホーム画面のアイコン・データの移行） -->
     <section id="screen-sync" class="screen" hidden>
       <div class="card">
         <h2 class="card-title">ホーム画面のアイコン</h2>
@@ -310,42 +315,9 @@
             <p><strong>iPhone（Safari）</strong>：画面下の共有ボタン →「ホーム画面に追加」。</p>
             <p><strong>Android（Chrome）</strong>：右上の︙ →「ホーム画面に追加」または「アプリをインストール」。</p>
             <p><strong>すでに追加している場合</strong>：アイコンを選び直しただけではホーム画面のアイコンは変わりません。ホーム画面のアイコンを削除してから、ブラウザでこのページを開いてもう一度追加してください。</p>
-            <p class="icon-howto-warn">iPhoneでは、ホーム画面から削除すると、そのアイコンから使っていたデータが消えることがあります。先に下の「ファイルに保存」か同期をしておいてください。</p>
+            <p class="icon-howto-warn">iPhoneでは、ホーム画面から削除すると、そのアイコンから使っていたデータが消えることがあります。先に下の「ファイルに保存」をしておいてください。</p>
           </div>
         </details>
-      </div>
-
-      <div class="card">
-        <h2 class="card-title">複数の端末で使う（同期）</h2>
-        <div id="sync-off">
-          <p class="card-text">同期コードを使って、スマホとタブレットなど複数の端末で同じデータを使えます。ログインは不要です。</p>
-          <button type="button" id="btn-sync-start" class="btn btn-primary btn-block">この端末で同期を始める</button>
-          <p class="card-or">ほかの端末で同期を始めている場合</p>
-          <form id="form-sync-join" class="form-inline" novalidate>
-            <label for="sync-code-input" class="visually-hidden">同期コード</label>
-            <input type="text" id="sync-code-input" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="同期コード（16文字）">
-            <button type="submit" class="btn btn-ghost">つなぐ</button>
-          </form>
-          <p class="field-error" id="sync-code-input-error" hidden></p>
-        </div>
-        <div id="sync-on" hidden>
-          <p class="card-text">同期中です。ほかの端末では、この同期コードを入れるか、QRコードを読み取ってください。</p>
-          <p id="sync-code" class="sync-code"></p>
-          <div id="sync-qr" class="sync-qr" hidden></div>
-          <p class="field-hint sync-url" id="sync-url"></p>
-          <p class="field-hint" id="sync-local-note" hidden>いまは localhost で開いているため、QRコードはこのパソコンでしか開けません。スマホでは、パソコンのIPアドレス（例：http://192.168.0.10/…）で開いてから同期コードを入れてください。</p>
-          <p class="field-hint" id="sync-last"></p>
-          <p class="field-error" id="sync-error" hidden></p>
-          <div class="btn-row">
-            <button type="button" id="btn-sync-now" class="btn btn-primary">今すぐ同期</button>
-            <button type="button" id="btn-sync-copy" class="btn btn-ghost">コードをコピー</button>
-          </div>
-          <div class="btn-row">
-            <button type="button" id="btn-sync-stop" class="btn btn-ghost">この端末の同期をやめる</button>
-            <button type="button" id="btn-sync-delete" class="btn btn-danger">同期先のデータを削除</button>
-          </div>
-        </div>
-        <p class="field-hint">同期コードを知っている人は、あなたのデータ（登録アプリ・ポイント）を見たり変えたりできます。人に教えないでください。決済情報やパスワードは保存していません。</p>
       </div>
 
       <div class="card">
@@ -417,7 +389,6 @@
   </div>
 </div>
 
-<script src="js/vendor/qrcode.js"></script>
 <script src="js/util.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/presets.js"></script>
